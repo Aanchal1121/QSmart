@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSmart — Public Waiting Room Display</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { background-color: #0b132b; color: #ffffff; }
+        .tv-card { background: #1c2541; border: 1px solid #3a506b; border-radius: 20px; }
+        .serving-giant { font-size: 6rem; font-weight: 900; color: #ffff3f; letter-spacing: 4px; text-shadow: 0 0 20px rgba(255,255,63,0.5); }
+    </style>
+</head>
+<body class="display-screen d-flex flex-column">
+
+    <!-- Top Display Header -->
+    <header class="display-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-hospital fs-1 text-info me-3"></i>
+            <div>
+                <h3 class="fw-bold mb-0 text-white" id="tvHospitalName">Apex City Multispecialty Hospital</h3>
+                <small class="text-info fs-6" id="tvDeptName">General Medicine (OPD) • Waiting Room Display</small>
+            </div>
+        </div>
+        <div class="text-end">
+            <div class="fs-4 fw-bold text-white" id="tvClock">10:45 AM</div>
+            <span class="badge bg-success px-3 py-1 fs-6"><i class="bi bi-broadcast me-1"></i> Live Synced</span>
+        </div>
+    </header>
+
+    <!-- Emergency Delays Ticker -->
+    <div id="tvAlertTicker" class="py-2 px-4 bg-danger text-white fw-bold d-none">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-octagon-fill fs-5 me-2"></i>
+            <span id="tvAlertText">Notice: Clinic delay reported. Recalculating waiting times.</span>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="container-fluid px-4 my-auto py-4">
+        <div class="row g-4 align-items-stretch">
+            
+            <!-- Left 7 cols: NOW SERVING -->
+            <div class="col-lg-7">
+                <div class="tv-card p-5 text-center h-100 d-flex flex-column justify-content-center shadow-lg border-primary">
+                    <span class="badge bg-primary px-4 py-2 fs-5 text-uppercase mb-3 mx-auto">
+                        <i class="bi bi-megaphone-fill me-2"></i> Now Calling / Serving
+                    </span>
+                    
+                    <div class="serving-giant my-2" id="tvServingToken">OPD-002</div>
+                    
+                    <div class="display-6 fw-bold text-white mb-2" id="tvServingPatient">Sneha Roy</div>
+                    <div class="badge bg-success fs-4 px-4 py-2 mx-auto" id="tvServingCounter">
+                        <i class="bi bi-door-open-fill me-2"></i> Counter 2 (Room 102)
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top border-secondary small text-white-50">
+                        Please proceed to the assigned room immediately with your token pass.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 5 cols: UP NEXT WAITING -->
+            <div class="col-lg-5">
+                <div class="tv-card p-4 h-100 d-flex flex-column shadow-lg">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary">
+                        <h4 class="fw-bold mb-0 text-info"><i class="bi bi-hourglass-split me-2"></i>Up Next in Queue</h4>
+                        <span class="badge bg-dark fs-6" id="tvWaitingCount">3 Waiting</span>
+                    </div>
+
+                    <div class="table-responsive flex-grow-1">
+                        <table class="table table-dark table-striped align-middle fs-5">
+                            <thead>
+                                <tr class="text-info">
+                                    <th>Token #</th>
+                                    <th>Patient</th>
+                                    <th>Priority</th>
+                                    <th>Est. Wait</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tvWaitingTable">
+                                <tr><td colspan="4" class="text-center py-4 text-muted">No waiting patients</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-dark border-secondary p-2 mt-auto mb-0 small text-white-50 d-flex align-items-center">
+                        <i class="bi bi-phone-vibrate text-warning fs-4 me-2"></i>
+                        <div>Join virtually via Smartphone or SMS: <code>BOOK HOSPITAL01 OPD</code></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Display Footer -->
+    <footer class="bg-dark text-white-50 py-2 px-4 border-top border-secondary text-center small">
+        QSmart Inclusive Virtual Queue Management System • Centralized FIFO Fairness Assured
+    </footer>
+
+    <!-- Bootstrap 5 JS, SockJS, STOMP -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let lastAnnouncedToken = null;
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('tvClock').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        async function fetchTvData() {
+            try {
+                const res = await fetch('/api/public/queue/1');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    renderTv(json.data);
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        function renderTv(data) {
+            document.getElementById('tvHospitalName').textContent = data.hospitalName || 'Apex City Hospital';
+            document.getElementById('tvDeptName').textContent = `${data.departmentName} (${data.departmentCode}) • Waiting Room Display`;
+            
+            // Now Serving
+            const currentToken = data.currentServingToken || 'None';
+            document.getElementById('tvServingToken').textContent = currentToken;
+            document.getElementById('tvServingPatient').textContent = data.currentServingPatient || '-';
+            document.getElementById('tvServingCounter').innerHTML = `<i class="bi bi-door-open-fill me-2"></i> ${data.currentCounterNumber || 'Waiting Room'}`;
+
+            // Announcement if token changed
+            if (currentToken !== 'None' && currentToken !== lastAnnouncedToken) {
+                lastAnnouncedToken = currentToken;
+                announceToken(currentToken, data.currentCounterNumber);
+            }
+
+            // Delay Banner
+            const ticker = document.getElementById('tvAlertTicker');
+            if (data.delayMinutes > 0) {
+                ticker.classList.remove('d-none');
+                document.getElementById('tvAlertText').textContent = `NOTICE: Estimated delay of ~${data.delayMinutes} minutes in ${data.departmentName} due to '${data.delayReason || 'emergency consultation'}'.`;
+            } else {
+                ticker.classList.add('d-none');
+            }
+
+            // Waiting list
+            document.getElementById('tvWaitingCount').textContent = `${data.totalWaiting} Waiting`;
+            const tbody = document.getElementById('tvWaitingTable');
+            const waiting = data.waitingTokens || [];
+
+            if (waiting.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No waiting patients in queue</td></tr>';
+                return;
+            }
+
+            let html = '';
+            waiting.forEach(t => {
+                const priorityBadge = t.priorityCategory !== 'NORMAL' ? `<span class="badge bg-danger">${t.priorityCategory}</span>` : '<span class="text-white-50">Standard</span>';
+                html += `
+                    <tr>
+                        <td class="fw-bold text-warning">${t.tokenNumber}</td>
+                        <td>${t.patientName}</td>
+                        <td>${priorityBadge}</td>
+                        <td class="text-info">~${t.estimatedWaitingMinutes}m</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchTvData();
+            window.qsmartWs.connect((connected) => {
+                window.qsmartWs.subscribeDepartment(1, (data) => renderTv(data));
+                window.qsmartWs.subscribePublicDisplay((data) => renderTv(data));
+            });
+        });
+    </script>
+</body>
+</html>

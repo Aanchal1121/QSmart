@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSmart — System Admin Console &amp; Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid px-lg-5">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-intersect"></i> QSmart Admin Console
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-light lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                    <button type="button" class="btn btn-outline-light lang-btn" data-lang="hi" onclick="setLanguage('hi')">हिंदी</button>
+                </div>
+                <div id="userNavSection" class="d-flex"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid px-lg-5 my-4">
+        
+        <!-- Header with Action Buttons -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h4 class="fw-bold text-dark mb-0"><i class="bi bi-speedometer2 text-primary me-2"></i>Executive Overview &amp; Live Analytics</h4>
+                <small class="text-muted">Centralized Queue System Monitoring Across All Channels</small>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addHospitalModal">
+                    <i class="bi bi-building-add me-1"></i> Add Hospital
+                </button>
+                <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#addDeptModal">
+                    <i class="bi bi-diagram-3-fill me-1"></i> Add Department
+                </button>
+                <button class="btn btn-primary-teal btn-sm" onclick="loadAllAdminData()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh Stats
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Stat Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-widget">
+                    <div class="stat-label">Total Bookings</div>
+                    <div class="stat-value" id="kpiTotalBookings">0</div>
+                    <small class="text-muted">Today</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-widget" style="border-left-color: #ffb703;">
+                    <div class="stat-label">Waiting</div>
+                    <div class="stat-value text-warning" id="kpiWaiting">0</div>
+                    <small class="text-muted">In Queue</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-widget" style="border-left-color: #006d77;">
+                    <div class="stat-label">Now Serving</div>
+                    <div class="stat-value text-primary" id="kpiServing">0</div>
+                    <small class="text-muted">At Counters</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-widget" style="border-left-color: #2a9d8f;">
+                    <div class="stat-label">Completed</div>
+                    <div class="stat-value text-success" id="kpiCompleted">0</div>
+                    <small class="text-muted">Served Today</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-widget" style="border-left-color: #e76f51;">
+                    <div class="stat-label">Cancelled / Skip</div>
+                    <div class="stat-value text-danger" id="kpiCancelled">0</div>
+                    <small class="text-muted">Absences logged</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-widget" style="border-left-color: #83c5be;">
+                    <div class="stat-label">Avg Wait Time</div>
+                    <div class="stat-value" id="kpiAvgWait">0m</div>
+                    <small class="text-muted">Statistical average</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3-Channel Breakdown & Peak Hours -->
+        <div class="row g-4 mb-4">
+            <!-- Channel Distribution Card -->
+            <div class="col-lg-5">
+                <div class="custom-card p-4 h-100">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Multi-Channel Inclusivity Ratio</h5>
+                    <p class="small text-muted mb-4">Demonstrates equal queue access across Smartphone, Keypad SMS, and Walk-ins.</p>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small fw-bold mb-1">
+                            <span><i class="bi bi-phone text-primary me-1"></i> Smartphone Users</span>
+                            <span id="pctSmart">0% (0)</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div id="progSmart" class="progress-bar bg-primary" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small fw-bold mb-1">
+                            <span><i class="bi bi-chat-square-text text-warning me-1"></i> Keypad SMS Users</span>
+                            <span id="pctSms">0% (0)</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div id="progSms" class="progress-bar bg-warning" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small fw-bold mb-1">
+                            <span><i class="bi bi-person-walking text-success me-1"></i> Walk-in / Assisted</span>
+                            <span id="pctWalkin">0% (0)</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div id="progWalkin" class="progress-bar bg-success" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border small text-muted mt-4 mb-0 py-2">
+                        <i class="bi bi-check-circle-fill text-success me-1"></i>
+                        All 3 channels are guaranteed strict FIFO sequencing by the centralized queue engine.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Department Load & Counters -->
+            <div class="col-lg-7">
+                <div class="custom-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-hospital-fill text-primary me-2"></i>Department Queues &amp; Operational Status</h5>
+                        <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addDeptModal">
+                            <i class="bi bi-plus-lg me-1"></i> New Department
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Hospital</th>
+                                    <th>Avg Duration</th>
+                                    <th>Active Delays</th>
+                                    <th>Queue Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deptStatusTableBody">
+                                <tr><td colspan="5" class="text-center py-4 text-muted">Loading department statuses...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority Requests / Authorized Exceptions Section -->
+        <div class="custom-card p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-award-fill text-warning me-2"></i>Priority Requests &amp; Authorized Triage</h5>
+                    <small class="text-muted">Staff-requested priority category escalations (Senior Citizens, PwD, Emergency)</small>
+                </div>
+                <span class="badge bg-warning text-dark">Staff Approved</span>
+            </div>
+
+            <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                <table class="table table-sm table-hover align-middle small">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Token #</th>
+                            <th>Requested Category</th>
+                            <th>Reason / Verification</th>
+                            <th>Requested By</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="priorityRequestsTableBody">
+                        <tr><td colspan="5" class="text-center py-3 text-muted">No pending priority requests</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Audit Log Section -->
+        <div class="custom-card p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-check text-primary me-2"></i>System Audit Trail &amp; Transparency Log</h5>
+                    <small class="text-muted">Every queue action (call, mark served, skip with reason, delay reporting) is permanently logged</small>
+                </div>
+                <span class="badge bg-secondary">Immutable Log</span>
+            </div>
+
+            <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
+                <table class="table table-sm table-hover align-middle small">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Action</th>
+                            <th>Performed By</th>
+                            <th>Target</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditLogTableBody">
+                        <tr><td colspan="5" class="text-center py-3 text-muted">Loading audit logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal: Add Hospital -->
+    <div class="modal fade" id="addHospitalModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-card p-2">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-building-add text-primary me-2"></i>Add Hospital / Service Center</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addHospitalForm" onsubmit="submitNewHospital(event)">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Hospital Code *</label>
+                            <input type="text" id="hospCode" class="form-control" placeholder="e.g. CITY03" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Hospital Name *</label>
+                            <input type="text" id="hospName" class="form-control" placeholder="e.g. City District Health Center" required>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">City</label>
+                                <input type="text" id="hospCity" class="form-control" placeholder="e.g. New Delhi" value="New Delhi">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Phone</label>
+                                <input type="text" id="hospPhone" class="form-control" placeholder="+91-11-..." value="+91-11-23450000">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Address</label>
+                            <input type="text" id="hospAddress" class="form-control" placeholder="Hospital address" value="Civil Lines, Health Hub">
+                        </div>
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary-teal fw-semibold">Save Hospital</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Department -->
+    <div class="modal fade" id="addDeptModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-card p-2">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-diagram-3-fill text-success me-2"></i>Add Department / Clinic</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addDeptForm" onsubmit="submitNewDepartment(event)">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Parent Hospital *</label>
+                            <select id="deptHospitalSelect" class="form-select" required>
+                                <option value="">Loading hospitals...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Department Code *</label>
+                            <input type="text" id="deptCode" class="form-control" placeholder="e.g. ENT, DENT, ONCO" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Department Name *</label>
+                            <input type="text" id="deptName" class="form-control" placeholder="e.g. ENT Clinic (Ear, Nose, Throat)" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Average Service Duration (Minutes)</label>
+                            <input type="number" id="deptDuration" class="form-control" value="10" min="2" max="60" required>
+                        </div>
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-success fw-semibold">Save Department</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        async function loadAllAdminData() {
+            await checkAuthAndSyncNavbar();
+            await loadAnalytics();
+            await loadDepartmentsList();
+            await loadHospitalsListForModal();
+            await loadPriorityRequests();
+            await loadAuditLogs();
+        }
+
+        async function loadAnalytics() {
+            try {
+                const res = await fetch('/api/admin/analytics');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const d = json.data;
+                    document.getElementById('kpiTotalBookings').textContent = d.totalBookings;
+                    document.getElementById('kpiWaiting').textContent = d.waitingCount;
+                    document.getElementById('kpiServing').textContent = d.calledCount;
+                    document.getElementById('kpiCompleted').textContent = d.servedCount;
+                    document.getElementById('kpiCancelled').textContent = (d.cancelledCount + d.skippedCount);
+                    document.getElementById('kpiAvgWait').textContent = d.avgWaitMinutes + 'm';
+
+                    // Channel ratios
+                    const total = d.totalBookings || 1;
+                    const smartPct = Math.round((d.smartphoneCount / total) * 100);
+                    const smsPct = Math.round((d.smsCount / total) * 100);
+                    const walkinPct = Math.round((d.walkInCount / total) * 100);
+
+                    document.getElementById('pctSmart').textContent = `${smartPct}% (${d.smartphoneCount})`;
+                    document.getElementById('progSmart').style.width = smartPct + '%';
+
+                    document.getElementById('pctSms').textContent = `${smsPct}% (${d.smsCount})`;
+                    document.getElementById('progSms').style.width = smsPct + '%';
+
+                    document.getElementById('pctWalkin').textContent = `${walkinPct}% (${d.walkInCount})`;
+                    document.getElementById('progWalkin').style.width = walkinPct + '%';
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        async function loadDepartmentsList() {
+            try {
+                const res = await fetch('/api/public/departments');
+                const json = await res.json();
+                const tbody = document.getElementById('deptStatusTableBody');
+                if (json.success && json.data) {
+                    let html = '';
+                    json.data.forEach(d => {
+                        const delayBadge = d.currentDelayMinutes > 0 ?
+                            `<span class="badge bg-warning text-dark">+${d.currentDelayMinutes}m (${d.delayReason || 'delay'})</span>` :
+                            '<span class="badge bg-light text-muted">On Schedule</span>';
+
+                        const pauseBadge = d.queuePaused ?
+                            '<span class="badge bg-danger">PAUSED</span>' :
+                            '<span class="badge bg-success">ACTIVE</span>';
+
+                        html += `
+                            <tr>
+                                <td><strong>${d.name}</strong> <small class="text-muted">(${d.code})</small></td>
+                                <td>${d.serviceCenter ? d.serviceCenter.name : 'Hospital'}</td>
+                                <td>~${d.avgServiceDurationMinutes} mins</td>
+                                <td>${delayBadge}</td>
+                                <td>${pauseBadge}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        async function loadHospitalsListForModal() {
+            try {
+                const res = await fetch('/api/public/hospitals');
+                const json = await res.json();
+                const sel = document.getElementById('deptHospitalSelect');
+                if (json.success && json.data) {
+                    sel.innerHTML = '<option value="">-- Select Hospital --</option>';
+                    json.data.forEach(h => {
+                        sel.innerHTML += `<option value="${h.id}">${h.name} (${h.code})</option>`;
+                    });
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        async function submitNewHospital(e) {
+            e.preventDefault();
+            const payload = {
+                code: document.getElementById('hospCode').value.trim().toUpperCase(),
+                name: document.getElementById('hospName').value.trim(),
+                city: document.getElementById('hospCity').value.trim(),
+                phone: document.getElementById('hospPhone').value.trim(),
+                address: document.getElementById('hospAddress').value.trim(),
+                type: 'HOSPITAL',
+                operatingHours: '08:00 AM - 08:00 PM',
+                active: true
+            };
+            try {
+                const res = await fetch('/api/admin/hospitals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Hospital ${json.data.name} created!`, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addHospitalModal')).hide();
+                    document.getElementById('addHospitalForm').reset();
+                    await loadAllAdminData();
+                } else {
+                    alert(json.message);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function submitNewDepartment(e) {
+            e.preventDefault();
+            const hospId = document.getElementById('deptHospitalSelect').value;
+            const payload = {
+                code: document.getElementById('deptCode').value.trim().toUpperCase(),
+                name: document.getElementById('deptName').value.trim(),
+                avgServiceDurationMinutes: parseInt(document.getElementById('deptDuration').value) || 10,
+                serviceCenter: { id: parseInt(hospId) },
+                active: true
+            };
+            try {
+                const res = await fetch('/api/admin/departments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Department ${json.data.name} created!`, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addDeptModal')).hide();
+                    document.getElementById('addDeptForm').reset();
+                    await loadAllAdminData();
+                } else {
+                    alert(json.message);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function loadPriorityRequests() {
+            try {
+                const res = await fetch('/api/admin/priority-requests');
+                const json = await res.json();
+                const tbody = document.getElementById('priorityRequestsTableBody');
+                if (json.success && json.data) {
+                    if (json.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No priority requests pending</td></tr>';
+                        return;
+                    }
+                    let html = '';
+                    json.data.forEach(p => {
+                        html += `
+                            <tr>
+                                <td><strong>${p.token ? p.token.tokenNumber : '-'}</strong></td>
+                                <td><span class="badge bg-danger">${p.requestedCategory}</span></td>
+                                <td>${p.reason}</td>
+                                <td>${p.requestedBy ? p.requestedBy.name : '-'}</td>
+                                <td><span class="badge bg-secondary">${p.status}</span></td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        async function loadAuditLogs() {
+            try {
+                const res = await fetch('/api/admin/audit-logs');
+                const json = await res.json();
+                const tbody = document.getElementById('auditLogTableBody');
+                if (json.success && json.data) {
+                    if (json.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No audit logs recorded</td></tr>';
+                        return;
+                    }
+                    let html = '';
+                    json.data.forEach(log => {
+                        const timeStr = log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : '-';
+                        html += `
+                            <tr>
+                                <td><span class="text-muted">${timeStr}</span></td>
+                                <td><span class="badge bg-dark">${log.action}</span></td>
+                                <td><strong>${log.performedBy}</strong></td>
+                                <td>${log.targetEntity || '-'} #${log.targetId || '-'}</td>
+                                <td>${log.details || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAllAdminData);
+    </script>
+</body>
+</html>

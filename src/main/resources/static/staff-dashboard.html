@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSmart — Staff Desk &amp; Queue Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #printableSlip, #printableSlip * { visibility: visible; }
+            #printableSlip { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid px-lg-5">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-intersect"></i> QSmart Staff Desk
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-warning text-dark btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#walkInModal">
+                    <i class="bi bi-person-plus-fill me-1"></i> Register Walk-in
+                </button>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-light lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                    <button type="button" class="btn btn-outline-light lang-btn" data-lang="hi" onclick="setLanguage('hi')">हिंदी</button>
+                </div>
+                <div id="userNavSection" class="d-flex"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid px-lg-5 my-4">
+
+        <!-- Top Bar: Counter & Department Selector + Queue Pause Alert -->
+        <div class="row g-3 align-items-center mb-4">
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted mb-1">Active Department</label>
+                <select id="staffDeptSelect" class="form-select border-primary" onchange="onDepartmentChanged(this.value)">
+                    <option value="1">General Medicine (OPD) - HOSPITAL01</option>
+                    <option value="2">Cardiology (CARD) - HOSPITAL01</option>
+                    <option value="3">Orthopedics (ORTHO) - HOSPITAL01</option>
+                    <option value="4">Pediatrics (PED) - HOSPITAL01</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted mb-1">Your Service Counter</label>
+                <select id="staffCounterSelect" class="form-select">
+                    <option value="1">Counter 1 (Room 101)</option>
+                    <option value="2">Counter 2 (Room 102)</option>
+                </select>
+            </div>
+            <div class="col-md-4 text-md-end mt-md-4">
+                <button id="pauseQueueBtn" class="btn btn-outline-danger me-2" onclick="togglePauseQueue()">
+                    <i class="bi bi-pause-circle me-1"></i> Pause Queue
+                </button>
+                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#delayModal">
+                    <i class="bi bi-clock-history me-1"></i> Report Delay
+                </button>
+            </div>
+        </div>
+
+        <!-- Delay Banner if active -->
+        <div id="staffDelayBanner" class="alert alert-warning d-none py-2 px-3 small d-flex align-items-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill text-warning fs-5 me-2"></i>
+            <div id="staffDelayText">Active Delay reported.</div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- Left Column: Active Call Desk -->
+            <div class="col-lg-5">
+                <div class="custom-card p-4 border-2 border-primary mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-primary px-3 py-2 text-uppercase">Counter Active Desk</span>
+                        <span id="counterStatusBadge" class="badge bg-success">Counter Available</span>
+                    </div>
+
+                    <div class="text-center py-4 bg-light rounded-4 my-3 border">
+                        <small class="text-muted text-uppercase fw-bold">Currently Calling / Serving</small>
+                        <div class="display-3 fw-bold text-primary my-1" id="currentCallToken">None</div>
+                        <div class="fs-5 fw-semibold text-dark" id="currentCallPatient">-</div>
+                        <small class="text-muted d-block mt-1" id="currentCallPhone">-</small>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="d-grid gap-2">
+                        <button id="callNextBtn" class="btn btn-primary-teal btn-lg py-3 fw-bold" onclick="callNextPatient()">
+                            <i class="bi bi-megaphone-fill me-2"></i> Call Next Patient (FIFO)
+                        </button>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button id="markServedBtn" class="btn btn-success w-100 py-2 fw-semibold" onclick="markCurrentServed()" disabled>
+                                    <i class="bi bi-check-circle-fill me-1"></i> Mark Served
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button id="skipTokenBtn" class="btn btn-danger w-100 py-2 fw-semibold" onclick="openSkipModal()" disabled>
+                                    <i class="bi bi-skip-forward-fill me-1"></i> Skip (Absent)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registration Shortcut Widget -->
+                <div class="custom-card p-4 text-center bg-light border-dashed">
+                    <i class="bi bi-person-walking fs-1 text-success mb-2"></i>
+                    <h5 class="fw-bold text-dark">Patient At The Reception?</h5>
+                    <p class="text-muted small mb-3">Generate an instant walk-in token slip to add them directly into the centralized FIFO queue.</p>
+                    <button class="btn btn-success fw-semibold px-4" data-bs-toggle="modal" data-bs-target="#walkInModal">
+                        <i class="bi bi-printer me-2"></i> Register &amp; Print Slip
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Live Queue Table & Priority Controls -->
+            <div class="col-lg-7">
+                <div class="custom-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-list-ol text-primary me-2"></i>Waiting Queue Sequence</h5>
+                            <small class="text-muted" id="queueCountLabel">3 patients in queue</small>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success px-3 py-1">
+                            <i class="bi bi-broadcast me-1"></i> Auto-Syncing
+                        </span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Token #</th>
+                                    <th>Patient Name</th>
+                                    <th>Channel</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffQueueTableBody">
+                                <tr><td colspan="6" class="text-center py-4 text-muted">Loading queue...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Walk-in Registration Modal -->
+    <div class="modal fade" id="walkInModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-card p-2">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-person-walking text-success me-2"></i>Register Walk-in Patient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="walkInAlert" class="alert d-none" role="alert"></div>
+                    <form id="walkInForm" onsubmit="handleWalkInRegister(event)">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Patient Full Name *</label>
+                            <input type="text" id="walkInName" class="form-control" placeholder="e.g. Ramesh Chandra" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Patient Mobile Number *</label>
+                            <input type="tel" id="walkInPhone" class="form-control" placeholder="+919876543210" required>
+                            <div class="form-text">Used for SMS confirmation and status lookup</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Priority Category</label>
+                            <select id="walkInPriority" class="form-select" onchange="toggleWalkInPriorityReason(this.value)">
+                                <option value="NORMAL">Normal / Standard (FIFO)</option>
+                                <option value="SENIOR_CITIZEN">Senior Citizen (65+ Years)</option>
+                                <option value="PWD">Persons with Disabilities (PwD)</option>
+                                <option value="EMERGENCY">Medical Emergency (Hospital Approved)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 d-none" id="walkInPriorityReasonGroup">
+                            <label class="form-label small fw-semibold">Priority Reason / Authorization *</label>
+                            <input type="text" id="walkInPriorityReason" class="form-control" placeholder="e.g. Senior age 74 verified by receptionist">
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" id="submitWalkInBtn" class="btn btn-success py-2 fw-semibold">
+                                <i class="bi bi-ticket-detailed me-1"></i> Generate Token Slip
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skip Reason Modal -->
+    <div class="modal fade" id="skipModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-card p-2">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Skip Absent Patient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        A mandatory reason is required to maintain transparency and fair audit compliance.
+                    </p>
+                    <input type="hidden" id="skipTokenId">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason for Skipping *</label>
+                        <select id="skipReasonPreset" class="form-select mb-2" onchange="if(this.value!=='custom') document.getElementById('skipReasonText').value=this.value;">
+                            <option value="Patient not present after 3 calls">Patient not present after 3 calls</option>
+                            <option value="Patient stepped out temporarily">Patient stepped out temporarily</option>
+                            <option value="Missing preliminary lab reports">Missing preliminary lab reports</option>
+                            <option value="custom">Other / Custom reason...</option>
+                        </select>
+                        <textarea id="skipReasonText" class="form-control" rows="2" placeholder="Describe the reason" required>Patient not present after 3 calls</textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger fw-semibold" onclick="confirmSkipToken()">
+                            <i class="bi bi-skip-forward-fill me-1"></i> Confirm Skip
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Delay Modal -->
+    <div class="modal fade" id="delayModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-card p-2">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-clock-history text-warning me-2"></i>Report Service Delay</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Estimated Delay (Minutes)</label>
+                        <input type="number" id="delayMinutesInput" class="form-control" value="15" min="0" max="180">
+                        <div class="form-text">Set to 0 to clear delay</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Delay Reason</label>
+                        <input type="text" id="delayReasonInput" class="form-control" placeholder="e.g. Doctor attending ICU emergency case" value="Emergency consultation in progress">
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-warning fw-semibold text-dark" onclick="submitDelayReport()">
+                            <i class="bi bi-broadcast me-1"></i> Broadcast Delay Alert
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable Token Slip (Hidden in screen, visible when printing) -->
+    <div id="printableSlip" class="d-none p-4 text-center border m-3" style="max-width: 320px; font-family: monospace;">
+        <h4 class="fw-bold mb-1">Apex City Hospital</h4>
+        <div class="small">Virtual Queue Token Slip</div>
+        <hr>
+        <div style="font-size: 2.5rem; font-weight: bold; margin: 10px 0;" id="slipTokenNumber">OPD-000</div>
+        <div class="fw-bold" id="slipDept">General OPD</div>
+        <div class="small mt-1" id="slipPatient">Patient Name</div>
+        <div class="small" id="slipTime">Time: 10:30 AM</div>
+        <hr>
+        <div id="slipQrBox" class="my-2"></div>
+        <div class="small text-muted">Scan QR to verify or track on smartphone. SMS: Text STATUS &lt;TOKEN&gt;</div>
+    </div>
+
+    <!-- Bootstrap 5 JS, SockJS, STOMP -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let currentCallingToken = null;
+        let selectedDeptId = 1;
+        let isPaused = false;
+
+        async function initStaffDashboard() {
+            await checkAuthAndSyncNavbar();
+            await loadStaffCounters(selectedDeptId);
+            await loadDepartmentQueue(selectedDeptId);
+
+            window.qsmartWs.connect((connected) => {
+                window.qsmartWs.subscribeDepartment(selectedDeptId, (data) => {
+                    renderStaffQueue(data);
+                });
+            });
+        }
+
+        async function onDepartmentChanged(deptId) {
+            selectedDeptId = deptId;
+            await loadStaffCounters(selectedDeptId);
+            await loadDepartmentQueue(selectedDeptId);
+            window.qsmartWs.subscribeDepartment(selectedDeptId, (data) => renderStaffQueue(data));
+        }
+
+        async function loadStaffCounters(deptId) {
+            try {
+                const res = await fetch(`/api/staff/counters?departmentId=${deptId}`);
+                const json = await res.json();
+                const sel = document.getElementById('staffCounterSelect');
+                sel.innerHTML = '';
+                if (json.success && json.data) {
+                    json.data.forEach(c => {
+                        sel.innerHTML += `<option value="${c.id}">${c.counterNumber} (${c.status})</option>`;
+                    });
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        async function loadDepartmentQueue(deptId) {
+            try {
+                const res = await fetch(`/api/staff/queue/${deptId}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    renderStaffQueue(json.data);
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        function renderStaffQueue(data) {
+            document.getElementById('queueCountLabel').textContent = `${data.totalWaiting} patients waiting in queue`;
+            
+            // Queue pause state
+            isPaused = data.queuePaused;
+            const pauseBtn = document.getElementById('pauseQueueBtn');
+            if (isPaused) {
+                pauseBtn.className = 'btn btn-success me-2';
+                pauseBtn.innerHTML = '<i class="bi bi-play-circle me-1"></i> Resume Queue';
+            } else {
+                pauseBtn.className = 'btn btn-outline-danger me-2';
+                pauseBtn.innerHTML = '<i class="bi bi-pause-circle me-1"></i> Pause Queue';
+            }
+
+            // Delay banner
+            const delayBanner = document.getElementById('staffDelayBanner');
+            if (data.delayMinutes > 0) {
+                delayBanner.classList.remove('d-none');
+                document.getElementById('staffDelayText').textContent = `Active Delay: ~${data.delayMinutes} mins (${data.delayReason || 'Doctor attending emergency'})`;
+            } else {
+                delayBanner.classList.add('d-none');
+            }
+
+            // Desk currently called token
+            if (data.recentlyCalledTokens && data.recentlyCalledTokens.length > 0) {
+                currentCallingToken = data.recentlyCalledTokens[data.recentlyCalledTokens.length - 1];
+                document.getElementById('currentCallToken').textContent = currentCallingToken.tokenNumber;
+                document.getElementById('currentCallPatient').textContent = currentCallingToken.patientName;
+                document.getElementById('currentCallPhone').textContent = currentCallingToken.patientPhone;
+                document.getElementById('markServedBtn').disabled = false;
+                document.getElementById('skipTokenBtn').disabled = false;
+                document.getElementById('counterStatusBadge').className = 'badge bg-warning text-dark';
+                document.getElementById('counterStatusBadge').textContent = 'Patient Called / Serving';
+            } else {
+                currentCallingToken = null;
+                document.getElementById('currentCallToken').textContent = 'None';
+                document.getElementById('currentCallPatient').textContent = '-';
+                document.getElementById('currentCallPhone').textContent = '-';
+                document.getElementById('markServedBtn').disabled = true;
+                document.getElementById('skipTokenBtn').disabled = true;
+                document.getElementById('counterStatusBadge').className = 'badge bg-success';
+                document.getElementById('counterStatusBadge').textContent = 'Counter Available';
+            }
+
+            // Table
+            const tbody = document.getElementById('staffQueueTableBody');
+            const allTokens = [...(data.recentlyCalledTokens || []), ...(data.waitingTokens || [])];
+
+            if (allTokens.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No waiting patients in queue</td></tr>';
+                return;
+            }
+
+            let html = '';
+            allTokens.forEach(t => {
+                const channelBadge = t.accessChannel === 'SMARTPHONE' ? '<span class="badge channel-pill channel-smartphone">Smart</span>' :
+                                     t.accessChannel === 'SMS' ? '<span class="badge channel-pill channel-sms">SMS</span>' :
+                                     '<span class="badge channel-pill channel-walkin">Walk-in</span>';
+
+                const statusBadge = t.status === 'CALLED' ? '<span class="badge badge-called">CALLED</span>' :
+                                    '<span class="badge badge-waiting">WAITING</span>';
+
+                const priorityBadge = t.priorityCategory !== 'NORMAL' ? `<span class="badge bg-danger text-white">${t.priorityCategory}</span>` : '<span class="text-muted small">Normal</span>';
+
+                const callAction = t.status === 'WAITING' ?
+                    `<button class="btn btn-outline-primary btn-sm py-0" onclick="callSpecificToken(${t.id})">Call</button>` :
+                    `<button class="btn btn-outline-success btn-sm py-0" onclick="markServedToken(${t.id})">Serve</button>`;
+
+                html += `
+                    <tr>
+                        <td><strong>${t.tokenNumber}</strong></td>
+                        <td>${t.patientName}</td>
+                        <td>${channelBadge}</td>
+                        <td>${priorityBadge}</td>
+                        <td>${statusBadge}</td>
+                        <td>${callAction}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function callNextPatient() {
+            const counterId = document.getElementById('staffCounterSelect').value;
+            try {
+                const res = await fetch(`/api/staff/queue/call-next?departmentId=${selectedDeptId}&counterId=${counterId}`, { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Token ${json.data.tokenNumber} called!`, 'success');
+                    announceToken(json.data.tokenNumber, json.data.assignedCounterName);
+                    await loadDepartmentQueue(selectedDeptId);
+                } else {
+                    alert('Could not call next: ' + json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function callSpecificToken(tokenId) {
+            const counterId = document.getElementById('staffCounterSelect').value;
+            try {
+                const res = await fetch(`/api/staff/queue/call-next?departmentId=${selectedDeptId}&counterId=${counterId}&specificTokenId=${tokenId}`, { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Token ${json.data.tokenNumber} called!`, 'success');
+                    announceToken(json.data.tokenNumber, json.data.assignedCounterName);
+                    await loadDepartmentQueue(selectedDeptId);
+                } else {
+                    alert(json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function markCurrentServed() {
+            if (!currentCallingToken) return;
+            await markServedToken(currentCallingToken.id);
+        }
+
+        async function markServedToken(tokenId) {
+            try {
+                const res = await fetch(`/api/staff/queue/mark-served?tokenId=${tokenId}`, { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Token ${json.data.tokenNumber} marked as SERVED.`, 'success');
+                    await loadDepartmentQueue(selectedDeptId);
+                } else {
+                    alert(json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function openSkipModal() {
+            if (!currentCallingToken) return;
+            document.getElementById('skipTokenId').value = currentCallingToken.id;
+            const modal = new bootstrap.Modal(document.getElementById('skipModal'));
+            modal.show();
+        }
+
+        async function confirmSkipToken() {
+            const tokenId = document.getElementById('skipTokenId').value;
+            const reason = document.getElementById('skipReasonText').value.trim();
+            if (!reason) {
+                alert('Please provide a skip reason');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/staff/queue/skip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tokenId: tokenId, reason: reason })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Token ${json.data.tokenNumber} skipped. Patient alerted.`, 'warning');
+                    bootstrap.Modal.getInstance(document.getElementById('skipModal')).hide();
+                    await loadDepartmentQueue(selectedDeptId);
+                } else {
+                    alert(json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function togglePauseQueue() {
+            const pause = !isPaused;
+            try {
+                const res = await fetch(`/api/staff/queue/toggle-pause?departmentId=${selectedDeptId}&pause=${pause}`, { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(pause ? 'Queue paused' : 'Queue resumed', 'info');
+                    await loadDepartmentQueue(selectedDeptId);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function submitDelayReport() {
+            const delayMin = parseInt(document.getElementById('delayMinutesInput').value) || 0;
+            const reason = document.getElementById('delayReasonInput').value.trim();
+
+            try {
+                const res = await fetch('/api/staff/queue/report-delay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ departmentId: selectedDeptId, delayMinutes: delayMin, reason: reason })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast('Delay reported. Patients alerted.', 'info');
+                    bootstrap.Modal.getInstance(document.getElementById('delayModal')).hide();
+                    await loadDepartmentQueue(selectedDeptId);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function toggleWalkInPriorityReason(val) {
+            const grp = document.getElementById('walkInPriorityReasonGroup');
+            if (val !== 'NORMAL') grp.classList.remove('d-none');
+            else grp.classList.add('d-none');
+        }
+
+        async function handleWalkInRegister(e) {
+            e.preventDefault();
+            const alertBox = document.getElementById('walkInAlert');
+            alertBox.classList.add('d-none');
+            const btn = document.getElementById('submitWalkInBtn');
+            btn.disabled = true;
+
+            const payload = {
+                departmentId: selectedDeptId,
+                patientName: document.getElementById('walkInName').value.trim(),
+                patientPhone: document.getElementById('walkInPhone').value.trim(),
+                accessChannel: 'WALK_IN',
+                priorityCategory: document.getElementById('walkInPriority').value,
+                priorityReason: document.getElementById('walkInPriorityReason').value.trim() || null
+            };
+
+            try {
+                const res = await fetch('/api/staff/walk-in/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Token ${json.data.tokenNumber} generated!`, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('walkInModal')).hide();
+                    
+                    // Setup printable slip
+                    document.getElementById('slipTokenNumber').textContent = json.data.tokenNumber;
+                    document.getElementById('slipDept').textContent = json.data.departmentName;
+                    document.getElementById('slipPatient').textContent = 'Patient: ' + json.data.patientName;
+                    document.getElementById('slipTime').textContent = 'Date: ' + new Date().toLocaleTimeString();
+                    renderQrCode('slipQrBox', json.data.verificationQrHash);
+
+                    // Ask if want to print slip
+                    if (confirm(`Token ${json.data.tokenNumber} created! Would you like to print the token slip now?`)) {
+                        const slip = document.getElementById('printableSlip');
+                        slip.classList.remove('d-none');
+                        window.print();
+                        slip.classList.add('d-none');
+                    }
+
+                    await loadDepartmentQueue(selectedDeptId);
+                } else {
+                    alertBox.className = 'alert alert-danger';
+                    alertBox.textContent = json.message;
+                    alertBox.classList.remove('d-none');
+                }
+            } catch (err) {
+                alertBox.className = 'alert alert-danger';
+                alertBox.textContent = err.message;
+                alertBox.classList.remove('d-none');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initStaffDashboard);
+    </script>
+</body>
+</html>

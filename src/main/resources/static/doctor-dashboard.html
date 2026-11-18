@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSmart — Doctor Clinic Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid px-lg-5">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-intersect"></i> QSmart Doctor Clinic
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-light lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                    <button type="button" class="btn btn-outline-light lang-btn" data-lang="hi" onclick="setLanguage('hi')">हिंदी</button>
+                </div>
+                <div id="userNavSection" class="d-flex"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid px-lg-5 my-4">
+
+        <!-- Doctor Header & Availability Bar -->
+        <div class="custom-card p-4 mb-4">
+            <div class="row align-items-center g-3">
+                <div class="col-md-5">
+                    <div class="d-flex align-items-center">
+                        <div class="p-3 bg-danger-subtle text-danger rounded-circle me-3">
+                            <i class="bi bi-heart-pulse-fill fs-2"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark" id="doctorProfileName">Dr. A. K. Sharma</h5>
+                            <small class="text-muted" id="doctorProfileDept">General Medicine (Room 102)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted mb-1">Your Clinic Availability Status</label>
+                    <select id="doctorStatusSelect" class="form-select fw-semibold" onchange="updateDoctorStatus(this.value)">
+                        <option value="AVAILABLE" class="text-success">Available for Consultations</option>
+                        <option value="IN_CONSULTATION" class="text-primary">In Active Consultation</option>
+                        <option value="ON_BREAK" class="text-warning">On Break (15 mins)</option>
+                        <option value="EMERGENCY_DELAY" class="text-danger">Emergency Case / Delay</option>
+                        <option value="OFFLINE" class="text-secondary">Clinic Closed / Offline</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 text-md-end">
+                    <span id="currentStatusBadge" class="badge bg-success px-3 py-2 fs-6">Available</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- Left: Current Patient Consultation Box -->
+            <div class="col-lg-5">
+                <div class="custom-card p-4 border-2 border-primary mb-4 text-center">
+                    <div class="d-flex justify-content-between align-items-center mb-3 text-start">
+                        <span class="badge bg-primary px-3 py-2 text-uppercase">Consultation Room</span>
+                        <span id="roomStatusBadge" class="badge bg-success">Room Ready</span>
+                    </div>
+
+                    <div class="py-4 bg-light rounded-4 my-2 border">
+                        <small class="text-muted text-uppercase fw-bold">Active Patient</small>
+                        <div class="display-3 fw-bold text-primary my-1" id="activeConsultToken">None</div>
+                        <div class="fs-4 fw-semibold text-dark" id="activeConsultPatient">-</div>
+                        <div class="small text-muted" id="activeConsultPhone">-</div>
+                        <div class="small text-muted mt-2" id="activeConsultPriority">Priority: Standard</div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-3">
+                        <button id="callNextDocBtn" class="btn btn-primary-teal btn-lg py-3 fw-bold" onclick="doctorCallNext()">
+                            <i class="bi bi-door-open-fill me-2"></i> Call Next Patient to Clinic
+                        </button>
+                        <button id="completeConsultBtn" class="btn btn-success btn-lg py-2 fw-semibold" onclick="doctorCompleteConsult()" disabled>
+                            <i class="bi bi-check2-circle me-1"></i> Complete Consultation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Emergency Delay Report Widget -->
+                <div class="custom-card p-4 bg-light">
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-clock-history text-danger me-2"></i>Attending an Emergency?</h6>
+                    <p class="small text-muted mb-3">Broadcast an estimated delay notice so waiting patients outside are politely notified.</p>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text"><i class="bi bi-stopwatch"></i></span>
+                        <input type="number" id="doctorDelayMinutes" class="form-control" placeholder="Delay mins" value="15">
+                        <button class="btn btn-outline-danger fw-semibold" onclick="doctorReportEmergencyDelay()">Report</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Today's Queue for this Clinic -->
+            <div class="col-lg-7">
+                <div class="custom-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-people-fill text-primary me-2"></i>Waiting Outside Clinic</h5>
+                            <small class="text-muted" id="doctorWaitingCount">2 patients waiting</small>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success px-3 py-1">
+                            <i class="bi bi-broadcast me-1"></i> Live Synced
+                        </span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Token #</th>
+                                    <th>Patient</th>
+                                    <th>Channel</th>
+                                    <th>Priority</th>
+                                    <th>Est. Wait</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctorQueueTableBody">
+                                <tr><td colspan="6" class="text-center py-4 text-muted">Loading clinic queue...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS, SockJS, STOMP -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let doctorDeptId = 1;
+        let currentDocToken = null;
+
+        async function initDoctorDashboard() {
+            await checkAuthAndSyncNavbar();
+            await loadDoctorStatus();
+            await loadDoctorQueue();
+
+            window.qsmartWs.connect((connected) => {
+                window.qsmartWs.subscribeDepartment(doctorDeptId, (data) => {
+                    renderDoctorQueue(data);
+                });
+            });
+        }
+
+        async function loadDoctorStatus() {
+            try {
+                const res = await fetch('/api/doctor/my-status');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const d = json.data;
+                    document.getElementById('doctorProfileName').textContent = d.doctor ? d.doctor.name : 'Dr. A. K. Sharma';
+                    document.getElementById('doctorProfileDept').textContent = `${d.department.name} (${d.roomNumber || 'Room 102'})`;
+                    document.getElementById('doctorStatusSelect').value = d.status;
+                    document.getElementById('currentStatusBadge').textContent = d.status.replace('_', ' ');
+                    doctorDeptId = d.department.id;
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        async function updateDoctorStatus(status) {
+            try {
+                const res = await fetch('/api/doctor/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status, reportedDelayMinutes: 0, delayReason: null })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Status updated to ${status}`, 'success');
+                    document.getElementById('currentStatusBadge').textContent = status.replace('_', ' ');
+                } else {
+                    alert(json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function doctorReportEmergencyDelay() {
+            const mins = parseInt(document.getElementById('doctorDelayMinutes').value) || 15;
+            try {
+                const res = await fetch('/api/doctor/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: 'EMERGENCY_DELAY',
+                        reportedDelayMinutes: mins,
+                        delayReason: 'Attending emergency consultation'
+                    })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Emergency delay reported (~${mins} mins). Waiting patients alerted.`, 'warning');
+                    document.getElementById('doctorStatusSelect').value = 'EMERGENCY_DELAY';
+                    document.getElementById('currentStatusBadge').textContent = 'EMERGENCY DELAY';
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function loadDoctorQueue() {
+            try {
+                const res = await fetch(`/api/doctor/queue?departmentId=${doctorDeptId}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    renderDoctorQueue(json.data);
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        function renderDoctorQueue(data) {
+            document.getElementById('doctorWaitingCount').textContent = `${data.totalWaiting} patients waiting`;
+
+            // Active called token
+            if (data.recentlyCalledTokens && data.recentlyCalledTokens.length > 0) {
+                currentDocToken = data.recentlyCalledTokens[data.recentlyCalledTokens.length - 1];
+                document.getElementById('activeConsultToken').textContent = currentDocToken.tokenNumber;
+                document.getElementById('activeConsultPatient').textContent = currentDocToken.patientName;
+                document.getElementById('activeConsultPhone').textContent = currentDocToken.patientPhone;
+                document.getElementById('activeConsultPriority').textContent = `Priority: ${currentDocToken.priorityCategory}`;
+                document.getElementById('completeConsultBtn').disabled = false;
+                document.getElementById('roomStatusBadge').className = 'badge bg-warning text-dark';
+                document.getElementById('roomStatusBadge').textContent = 'In Consultation';
+            } else {
+                currentDocToken = null;
+                document.getElementById('activeConsultToken').textContent = 'None';
+                document.getElementById('activeConsultPatient').textContent = '-';
+                document.getElementById('activeConsultPhone').textContent = '-';
+                document.getElementById('activeConsultPriority').textContent = 'Priority: Standard';
+                document.getElementById('completeConsultBtn').disabled = true;
+                document.getElementById('roomStatusBadge').className = 'badge bg-success';
+                document.getElementById('roomStatusBadge').textContent = 'Room Ready';
+            }
+
+            const tbody = document.getElementById('doctorQueueTableBody');
+            const tokens = data.waitingTokens || [];
+
+            if (tokens.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No waiting patients outside clinic</td></tr>';
+                return;
+            }
+
+            let html = '';
+            tokens.forEach(t => {
+                const channelBadge = t.accessChannel === 'SMARTPHONE' ? '<span class="badge channel-pill channel-smartphone">Smart</span>' :
+                                     t.accessChannel === 'SMS' ? '<span class="badge channel-pill channel-sms">SMS</span>' :
+                                     '<span class="badge channel-pill channel-walkin">Walk-in</span>';
+
+                const priorityBadge = t.priorityCategory !== 'NORMAL' ? `<span class="badge bg-danger text-white">${t.priorityCategory}</span>` : '<span class="text-muted small">Standard</span>';
+
+                html += `
+                    <tr>
+                        <td><strong>${t.tokenNumber}</strong></td>
+                        <td>${t.patientName}</td>
+                        <td>${channelBadge}</td>
+                        <td>${priorityBadge}</td>
+                        <td>~${t.estimatedWaitingMinutes} mins</td>
+                        <td>
+                            <button class="btn btn-outline-primary btn-sm py-0" onclick="doctorCallSpecificToken(${t.id})">Call In</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function doctorCallNext() {
+            try {
+                const res = await fetch(`/api/doctor/call-next?departmentId=${doctorDeptId}`, { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Called token ${json.data.tokenNumber} to clinic!`, 'success');
+                    announceToken(json.data.tokenNumber, 'Doctor Clinic');
+                    await loadDoctorQueue();
+                } else {
+                    alert(json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function doctorCallSpecificToken(tokenId) {
+            try {
+                const res = await fetch(`/api/doctor/call-next?departmentId=${doctorDeptId}&specificTokenId=${tokenId}`, { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Called token ${json.data.tokenNumber} to clinic!`, 'success');
+                    announceToken(json.data.tokenNumber, 'Doctor Clinic');
+                    await loadDoctorQueue();
+                } else {
+                    alert(json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function doctorCompleteConsult() {
+            if (!currentDocToken) return;
+            try {
+                const res = await fetch(`/api/doctor/mark-served?tokenId=${currentDocToken.id}`, { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`Consultation for ${json.data.tokenNumber} completed.`, 'success');
+                    await loadDoctorQueue();
+                } else {
+                    alert(json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initDoctorDashboard);
+    </script>
+</body>
+</html>

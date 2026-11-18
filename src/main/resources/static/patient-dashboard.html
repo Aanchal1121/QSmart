@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSmart — Patient Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid px-lg-5">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-intersect"></i> QSmart Patient
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-primary-teal btn-sm" data-bs-toggle="modal" data-bs-target="#bookTokenModal">
+                    <i class="bi bi-plus-circle me-1"></i> Book Token
+                </button>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-light lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                    <button type="button" class="btn btn-outline-light lang-btn" data-lang="hi" onclick="setLanguage('hi')">हिंदी</button>
+                </div>
+                <div id="userNavSection" class="d-flex"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid px-lg-5 my-4">
+        
+        <!-- Live Alert Banner (For Delays or Turn Arrival) -->
+        <div id="liveTurnAlert" class="alert alert-warning border-2 shadow-sm d-none mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-bell-fill fs-2 text-warning me-3"></i>
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold mb-1" id="turnAlertTitle">Your Turn Has Arrived!</h5>
+                    <p class="mb-0" id="turnAlertMessage">Please proceed immediately to the counter.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- Left Column: Active Token & Live Progress -->
+            <div class="col-lg-8">
+                
+                <!-- Section 1: Active Token Card (Dynamic) -->
+                <div id="activeTokenSection">
+                    <div class="custom-card p-4 text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <h5 class="text-muted">Loading your virtual queue status...</h5>
+                    </div>
+                </div>
+
+                <!-- Section 2: Department Live Queue Tracking -->
+                <div class="custom-card mt-4 p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-people-fill text-primary me-2"></i>Live Department Queue</h5>
+                            <small class="text-muted" id="liveQueueSubtitle">Real-time FIFO queue sequence</small>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success px-3 py-1">
+                            <i class="bi bi-broadcast me-1"></i> Live Synced
+                        </span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Token #</th>
+                                    <th>Patient</th>
+                                    <th>Channel</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Est. Wait</th>
+                                </tr>
+                            </thead>
+                            <tbody id="liveQueueTableBody">
+                                <tr><td colspan="6" class="text-center py-3 text-muted">Select or book a token to view queue</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section 3: Past Token History -->
+                <div class="custom-card mt-4 p-4">
+                    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-clock-history text-secondary me-2"></i>Your Past Token History</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Token #</th>
+                                    <th>Department</th>
+                                    <th>Date</th>
+                                    <th>Channel</th>
+                                    <th>Status</th>
+                                    <th>Served By</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tokenHistoryTableBody">
+                                <tr><td colspan="6" class="text-center py-3 text-muted">No past history recorded</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Digital QR Slip, Keypad Instructions, Notifications -->
+            <div class="col-lg-4">
+                
+                <!-- Digital QR Pass Card -->
+                <div class="custom-card p-4 text-center mb-4">
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-qr-code-scan text-primary me-2"></i>Digital Token Pass</h6>
+                    <p class="text-muted small">Show this verification code at clinic reception or counter</p>
+                    <div class="qr-container my-3" id="qrContainer">
+                        <div class="text-muted py-4 small">Book a token to view QR</div>
+                    </div>
+                    <div class="small fw-semibold text-primary" id="qrTokenLabel">No Active Token</div>
+                    <small class="text-muted d-block mt-1">Contains secure cryptographic hash only; zero sensitive data exposed.</small>
+                </div>
+
+                <!-- Keypad Phone SMS Guide -->
+                <div class="custom-card p-4 bg-light mb-4 border-warning">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-chat-dots-fill text-warning fs-3 me-2"></i>
+                        <h6 class="fw-bold mb-0 text-dark">No Smartphone? Use SMS</h6>
+                    </div>
+                    <p class="small text-muted mb-3">
+                        Family members with basic feature phones can join this identical queue via SMS commands:
+                    </p>
+                    <div class="p-2 bg-white rounded border small font-monospace mb-2">
+                        <strong>BOOK HOSPITAL01 OPD</strong>
+                    </div>
+                    <div class="p-2 bg-white rounded border small font-monospace mb-2">
+                        <strong>STATUS &lt;TOKEN_NUMBER&gt;</strong>
+                    </div>
+                    <div class="p-2 bg-white rounded border small font-monospace mb-3">
+                        <strong>CANCEL &lt;TOKEN_NUMBER&gt;</strong>
+                    </div>
+                    <a href="sms-simulator.html" class="btn btn-warning btn-sm w-100 fw-semibold text-dark">
+                        <i class="bi bi-phone me-1"></i> Open SMS Keypad Simulator
+                    </a>
+                </div>
+
+                <!-- In-App Notifications -->
+                <div class="custom-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-bell-fill text-primary me-2"></i>Notifications</h6>
+                        <span class="badge bg-primary rounded-pill" id="notifBadge">0</span>
+                    </div>
+                    <div id="notificationsList" class="d-flex flex-column gap-2" style="max-height: 280px; overflow-y: auto;">
+                        <small class="text-muted text-center py-3">No notifications</small>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Token Modal -->
+    <div class="modal fade" id="bookTokenModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-card p-2">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="bi bi-ticket-perforated-fill text-primary me-2"></i>Book Virtual Token</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="bookModalAlert" class="alert d-none" role="alert"></div>
+                    <form id="bookTokenForm" onsubmit="handleBookToken(event)">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Select Hospital / Service Center</label>
+                            <select id="bookHospitalSelect" class="form-select" onchange="loadDepartmentsForHospital(this.value)" required>
+                                <option value="">Loading hospitals...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Select Department / Clinic</label>
+                            <select id="bookDepartmentSelect" class="form-select" required>
+                                <option value="">Select a hospital first</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Patient Name</label>
+                            <input type="text" id="bookPatientName" class="form-control" placeholder="Patient's full name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Mobile Number for SMS Notifications</label>
+                            <input type="tel" id="bookPatientPhone" class="form-control" placeholder="+919876543210" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Priority Assistance Category</label>
+                            <select id="bookPriorityCategory" class="form-select" onchange="togglePriorityReason(this.value)">
+                                <option value="NORMAL">Standard Queue (FIFO)</option>
+                                <option value="SENIOR_CITIZEN">Senior Citizen (65+ Years)</option>
+                                <option value="PWD">Persons with Disabilities (PwD)</option>
+                                <option value="EMERGENCY">Medical Emergency (Requires Staff Triage)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 d-none" id="priorityReasonGroup">
+                            <label class="form-label small fw-semibold">Priority Assistance Reason</label>
+                            <input type="text" id="bookPriorityReason" class="form-control" placeholder="e.g. Age 70 with mobility impairment">
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" id="submitBookBtn" class="btn btn-primary-teal py-2 fw-semibold">
+                                <i class="bi bi-check-circle me-1"></i> Confirm Booking
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS, SockJS, STOMP -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let currentActiveToken = null;
+        let monitoredDepartmentId = 1;
+
+        async function initPatientDashboard() {
+            await checkAuthAndSyncNavbar();
+            
+            // Auto pre-fill name/phone if logged in
+            if (currentUser) {
+                document.getElementById('bookPatientName').value = currentUser.name || '';
+                document.getElementById('bookPatientPhone').value = currentUser.phone || '';
+            }
+
+            await loadHospitals();
+            await loadActiveToken();
+            await loadLiveDepartmentQueue(monitoredDepartmentId);
+            await loadTokenHistory();
+            await loadNotifications();
+
+            // Connect WebSocket
+            window.qsmartWs.connect((connected) => {
+                window.qsmartWs.subscribeDepartment(monitoredDepartmentId, (liveData) => {
+                    renderLiveDepartmentQueue(liveData);
+                    // Also refresh active token to update position and ETA
+                    loadActiveToken();
+                });
+
+                if (currentUser) {
+                    window.qsmartWs.subscribeUserNotifications(currentUser.id, (notif) => {
+                        showToast(notif.message, 'info');
+                        loadNotifications();
+                        loadActiveToken();
+                    });
+                }
+            });
+        }
+
+        async function loadActiveToken() {
+            try {
+                const res = await fetch('/api/patient/tokens/active');
+                const json = await res.json();
+                const container = document.getElementById('activeTokenSection');
+
+                if (json.success && json.data) {
+                    currentActiveToken = json.data;
+                    monitoredDepartmentId = currentActiveToken.departmentId;
+
+                    // Trigger Turn Alert if token is CALLED
+                    if (currentActiveToken.status === 'CALLED') {
+                        document.getElementById('liveTurnAlert').classList.remove('d-none');
+                        document.getElementById('turnAlertTitle').textContent = `TURN CALLED: Token ${currentActiveToken.tokenNumber}!`;
+                        document.getElementById('turnAlertMessage').textContent = `Please proceed to ${currentActiveToken.assignedCounterName || 'the consultation room'} immediately.`;
+                        announceToken(currentActiveToken.tokenNumber, currentActiveToken.assignedCounterName);
+                    } else {
+                        document.getElementById('liveTurnAlert').classList.add('d-none');
+                    }
+
+                    // Render Token Card
+                    const isCalled = currentActiveToken.status === 'CALLED';
+                    const badgeClass = isCalled ? 'badge-called' : 'badge-waiting';
+                    const progressPercent = Math.min(100, Math.max(10, 100 - (currentActiveToken.peopleAhead * 20)));
+
+                    container.innerHTML = `
+                        <div class="token-hero-box text-start p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge ${badgeClass} px-3 py-2 text-uppercase fs-6">
+                                    <i class="bi bi-clock-history me-1"></i> ${currentActiveToken.status}
+                                </span>
+                                <span class="text-white-50 small"><i class="bi bi-hospital me-1"></i> ${currentActiveToken.hospitalName}</span>
+                            </div>
+
+                            <div class="row align-items-center my-3">
+                                <div class="col-md-6 text-center text-md-start">
+                                    <small class="text-white-50 text-uppercase fw-bold">Your Digital Token</small>
+                                    <div class="token-badge-large">${currentActiveToken.tokenNumber}</div>
+                                    <div class="text-white fw-semibold">${currentActiveToken.departmentName}</div>
+                                </div>
+                                <div class="col-md-6 mt-3 mt-md-0">
+                                    <div class="row g-2 text-center">
+                                        <div class="col-6">
+                                            <div class="p-2 bg-white bg-opacity-10 rounded">
+                                                <small class="text-white-50 d-block">People Ahead</small>
+                                                <span class="fs-3 fw-bold text-white">${currentActiveToken.peopleAhead}</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="p-2 bg-white bg-opacity-10 rounded">
+                                                <small class="text-white-50 d-block">Est. Wait</small>
+                                                <span class="fs-3 fw-bold text-warning">~${currentActiveToken.estimatedWaitingMinutes} min</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <div class="d-flex justify-content-between small text-white-50 mb-1">
+                                            <span>Queue Progress</span>
+                                            <span>${progressPercent}%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" style="width: ${progressPercent}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top border-white border-opacity-10 mt-2">
+                                <div class="small text-white-50">
+                                    <i class="bi bi-person-check me-1"></i> Patient: <strong class="text-white">${currentActiveToken.patientName}</strong>
+                                </div>
+                                <button class="btn btn-outline-light btn-sm text-danger border-danger bg-white" onclick="cancelActiveToken(${currentActiveToken.id})">
+                                    <i class="bi bi-x-circle me-1"></i> Cancel Token
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Render QR code
+                    renderQrCode('qrContainer', currentActiveToken.verificationQrHash);
+                    document.getElementById('qrTokenLabel').textContent = currentActiveToken.tokenNumber + ' • ' + currentActiveToken.departmentName;
+
+                } else {
+                    currentActiveToken = null;
+                    document.getElementById('liveTurnAlert').classList.add('d-none');
+                    container.innerHTML = `
+                        <div class="custom-card p-5 text-center">
+                            <i class="bi bi-ticket-perforated fs-1 text-muted mb-2"></i>
+                            <h5 class="fw-bold text-dark">No Active Queue Token</h5>
+                            <p class="text-muted small mb-4">You have not joined any virtual queue today. Book a token in seconds to avoid physical waiting.</p>
+                            <button class="btn btn-primary-teal px-4 fw-semibold" data-bs-toggle="modal" data-bs-target="#bookTokenModal">
+                                <i class="bi bi-plus-circle me-1"></i> Book a Digital Token
+                            </button>
+                        </div>
+                    `;
+                    document.getElementById('qrContainer').innerHTML = '<div class="text-muted py-4 small">No active token</div>';
+                    document.getElementById('qrTokenLabel').textContent = 'No Active Token';
+                }
+            } catch (e) {
+                console.error('Error fetching active token', e);
+            }
+        }
+
+        async function loadHospitals() {
+            try {
+                const res = await fetch('/api/public/hospitals');
+                const json = await res.json();
+                const sel = document.getElementById('bookHospitalSelect');
+                sel.innerHTML = '<option value="">-- Choose Hospital --</option>';
+                if (json.success && json.data) {
+                    json.data.forEach(h => {
+                        sel.innerHTML += `<option value="${h.id}">${h.name} (${h.code})</option>`;
+                    });
+                    if (json.data.length > 0) {
+                        sel.value = json.data[0].id;
+                        loadDepartmentsForHospital(json.data[0].id);
+                    }
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        async function loadDepartmentsForHospital(hospitalId) {
+            if (!hospitalId) return;
+            const sel = document.getElementById('bookDepartmentSelect');
+            sel.innerHTML = '<option value="">Loading...</option>';
+            try {
+                const res = await fetch(`/api/public/hospitals/${hospitalId}/departments`);
+                const json = await res.json();
+                sel.innerHTML = '';
+                if (json.success && json.data) {
+                    json.data.forEach(d => {
+                        sel.innerHTML += `<option value="${d.id}">${d.name} (${d.code}) - Avg ~${d.avgServiceDurationMinutes} min</option>`;
+                    });
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        function togglePriorityReason(val) {
+            const grp = document.getElementById('priorityReasonGroup');
+            if (val !== 'NORMAL') {
+                grp.classList.remove('d-none');
+            } else {
+                grp.classList.add('d-none');
+            }
+        }
+
+        async function handleBookToken(e) {
+            e.preventDefault();
+            const alertBox = document.getElementById('bookModalAlert');
+            alertBox.classList.add('d-none');
+            const btn = document.getElementById('submitBookBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Booking...';
+
+            const payload = {
+                departmentId: document.getElementById('bookDepartmentSelect').value,
+                patientName: document.getElementById('bookPatientName').value.trim(),
+                patientPhone: document.getElementById('bookPatientPhone').value.trim(),
+                accessChannel: 'SMARTPHONE',
+                priorityCategory: document.getElementById('bookPriorityCategory').value,
+                priorityReason: document.getElementById('bookPriorityReason').value.trim() || null
+            };
+
+            try {
+                const res = await fetch('/api/patient/tokens/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+
+                if (json.success) {
+                    showToast(`Token ${json.data.tokenNumber} booked successfully!`, 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('bookTokenModal'));
+                    modal.hide();
+                    await loadActiveToken();
+                    await loadLiveDepartmentQueue(payload.departmentId);
+                    await loadTokenHistory();
+                } else {
+                    alertBox.className = 'alert alert-danger';
+                    alertBox.textContent = json.message || 'Booking failed';
+                    alertBox.classList.remove('d-none');
+                }
+            } catch (err) {
+                alertBox.className = 'alert alert-danger';
+                alertBox.textContent = 'Server error: ' + err.message;
+                alertBox.classList.remove('d-none');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Confirm Booking';
+            }
+        }
+
+        async function cancelActiveToken(tokenId) {
+            if (!confirm('Are you sure you want to cancel this booking?')) return;
+            try {
+                const res = await fetch(`/api/patient/tokens/${tokenId}/cancel`, { method: 'POST' });
+                const json = await res.json();
+                if (json.success) {
+                    showToast('Booking cancelled.', 'info');
+                    await loadActiveToken();
+                    await loadTokenHistory();
+                    await loadLiveDepartmentQueue(monitoredDepartmentId);
+                } else {
+                    alert('Cancellation failed: ' + json.message);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function loadLiveDepartmentQueue(deptId) {
+            try {
+                const res = await fetch(`/api/public/queue/${deptId}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    renderLiveDepartmentQueue(json.data);
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        function renderLiveDepartmentQueue(data) {
+            document.getElementById('liveQueueSubtitle').textContent = `${data.hospitalName} • ${data.departmentName} (Now Serving: ${data.currentServingToken || 'None'})`;
+            const tbody = document.getElementById('liveQueueTableBody');
+            
+            const allTokens = [...(data.recentlyCalledTokens || []), ...(data.waitingTokens || [])];
+
+            if (allTokens.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No active patients in queue</td></tr>';
+                return;
+            }
+
+            let html = '';
+            allTokens.forEach(t => {
+                const isMine = currentActiveToken && currentActiveToken.id === t.id;
+                const rowClass = isMine ? 'table-warning fw-bold' : '';
+                const channelBadge = t.accessChannel === 'SMARTPHONE' ? '<span class="badge channel-pill channel-smartphone">Smart</span>' :
+                                     t.accessChannel === 'SMS' ? '<span class="badge channel-pill channel-sms">SMS</span>' :
+                                     '<span class="badge channel-pill channel-walkin">Walk-in</span>';
+
+                const statusBadge = t.status === 'CALLED' ? '<span class="badge badge-called">CALLED</span>' :
+                                    '<span class="badge badge-waiting">WAITING</span>';
+
+                const priorityBadge = t.priorityCategory !== 'NORMAL' ? `<span class="badge bg-danger text-white">${t.priorityCategory}</span>` : '<span class="text-muted small">Standard</span>';
+
+                html += `
+                    <tr class="${rowClass}">
+                        <td><span class="badge bg-dark">${t.tokenNumber}</span> ${isMine ? '<span class="badge bg-primary ms-1">YOU</span>' : ''}</td>
+                        <td>${t.patientName}</td>
+                        <td>${channelBadge}</td>
+                        <td>${priorityBadge}</td>
+                        <td>${statusBadge}</td>
+                        <td>~${t.estimatedWaitingMinutes} mins</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function loadTokenHistory() {
+            try {
+                const res = await fetch('/api/patient/tokens/history');
+                const json = await res.json();
+                const tbody = document.getElementById('tokenHistoryTableBody');
+                if (json.success && json.data && json.data.length > 0) {
+                    let html = '';
+                    json.data.forEach(t => {
+                        const dateStr = t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '-';
+                        html += `
+                            <tr>
+                                <td><strong>${t.tokenNumber}</strong></td>
+                                <td>${t.departmentName}</td>
+                                <td>${dateStr}</td>
+                                <td><small class="text-uppercase">${t.accessChannel}</small></td>
+                                <td><span class="badge bg-secondary">${t.status}</span></td>
+                                <td>${t.servedByName || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        async function loadNotifications() {
+            try {
+                const res = await fetch('/api/patient/notifications');
+                const json = await res.json();
+                const list = document.getElementById('notificationsList');
+                const badge = document.getElementById('notifBadge');
+                if (json.success && json.data) {
+                    badge.textContent = json.data.length;
+                    if (json.data.length === 0) {
+                        list.innerHTML = '<small class="text-muted text-center py-3">No notifications</small>';
+                        return;
+                    }
+                    let html = '';
+                    json.data.forEach(n => {
+                        html += `
+                            <div class="p-2 border rounded bg-white small">
+                                <div class="fw-bold text-primary mb-1">${n.title}</div>
+                                <div class="text-dark">${n.message}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">${new Date(n.createdAt).toLocaleTimeString()}</small>
+                            </div>
+                        `;
+                    });
+                    list.innerHTML = html;
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initPatientDashboard);
+    </script>
+</body>
+</html>

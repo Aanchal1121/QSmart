@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSmart — Keypad Phone SMS Simulator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-light">
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid px-lg-5">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-intersect"></i> QSmart SMS Simulator
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="index.html" class="btn btn-outline-light btn-sm"><i class="bi bi-house me-1"></i>Home</a>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-light lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                    <button type="button" class="btn btn-outline-light lang-btn" data-lang="hi" onclick="setLanguage('hi')">हिंदी</button>
+                </div>
+                <div id="userNavSection" class="d-flex"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container px-lg-5 my-4">
+        
+        <div class="text-center max-w-700 mx-auto mb-4">
+            <span class="badge bg-warning text-dark px-3 py-1 fw-bold mb-2">INCLUSIVE ACCESS CHANNEL B</span>
+            <h3 class="fw-bold text-dark">Keypad Phone 2-Way SMS Simulator</h3>
+            <p class="text-muted small">
+                Enables citizens without smartphones or internet connectivity to book virtual tokens, check live queue status, and cancel bookings via standard SMS.
+            </p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            
+            <!-- Left: Simulated Mobile Phone Screen -->
+            <div class="col-md-6 col-lg-5">
+                <div class="sms-phone-frame">
+                    <!-- Phone Speaker Bar -->
+                    <div class="py-2 text-center">
+                        <div class="bg-secondary rounded-pill mx-auto" style="width: 50px; height: 5px;"></div>
+                    </div>
+
+                    <!-- Screen -->
+                    <div class="sms-phone-screen">
+                        <!-- Top status bar -->
+                        <div class="px-3 py-2 bg-light border-bottom d-flex justify-content-between align-items-center small text-muted">
+                            <span><i class="bi bi-reception-4 me-1"></i>Airtel / Jio 4G</span>
+                            <span class="fw-bold text-dark">QSMART (56767)</span>
+                            <span><i class="bi bi-battery-full"></i> 98%</span>
+                        </div>
+
+                        <!-- Chat bubble window -->
+                        <div class="sms-chat-window" id="smsChatWindow">
+                            <div class="sms-bubble sms-outbound">
+                                <strong>QSmart Gateway:</strong><br>
+                                Welcome to QSmart Virtual Queue. Send <code>HELP</code> for available commands, or text <code>BOOK HOSPITAL01 OPD</code> to get a token pass.
+                            </div>
+                        </div>
+
+                        <!-- Bottom input box -->
+                        <div class="p-2 bg-white border-top">
+                            <form id="smsForm" onsubmit="sendSmsCommand(event)" class="d-flex gap-2">
+                                <input type="text" id="smsSenderPhone" class="form-control form-control-sm" value="+919876543210" style="width: 125px;" title="Sender Mobile Number">
+                                <input type="text" id="smsInputText" class="form-control form-control-sm" placeholder="Type SMS command..." required>
+                                <button type="submit" id="sendSmsBtn" class="btn btn-primary-teal btn-sm px-3">
+                                    <i class="bi bi-send-fill"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Quick Commands, Gateway Status & Indian Telecom Compliance -->
+            <div class="col-md-6 col-lg-6">
+                
+                <!-- Quick Command Buttons -->
+                <div class="custom-card p-4 mb-4">
+                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Quick Test Commands</h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary text-start" onclick="fillAndSend('BOOK HOSPITAL01 OPD')">
+                            <div class="fw-bold"><i class="bi bi-ticket-perforated me-1"></i> BOOK HOSPITAL01 OPD</div>
+                            <small class="text-muted">Books digital token for General Medicine at Apex City Hospital</small>
+                        </button>
+                        <button class="btn btn-outline-info text-start" onclick="fillAndSend('STATUS OPD-004')">
+                            <div class="fw-bold"><i class="bi bi-info-circle me-1"></i> STATUS OPD-004</div>
+                            <small class="text-muted">Checks position, people ahead, and estimated wait for OPD-004</small>
+                        </button>
+                        <button class="btn btn-outline-danger text-start" onclick="fillAndSend('CANCEL OPD-004')">
+                            <div class="fw-bold"><i class="bi bi-x-circle me-1"></i> CANCEL OPD-004</div>
+                            <small class="text-muted">Cancels token booking cleanly</small>
+                        </button>
+                        <button class="btn btn-outline-secondary text-start" onclick="fillAndSend('HELP')">
+                            <div class="fw-bold"><i class="bi bi-question-circle me-1"></i> HELP</div>
+                            <small class="text-muted">Lists all available SMS syntax commands</small>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Telecom Architecture & DLT Requirements -->
+                <div class="custom-card p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-broadcast-pin text-primary me-2"></i>Indian Telecom &amp; DLT Gateway Architecture</h6>
+                        <span class="badge bg-warning text-dark">Mock Mode Active</span>
+                    </div>
+                    <p class="small text-muted mb-2">
+                        In development, outgoing SMS messages are logged to database &amp; SLF4J console via <code>MockSmsProvider</code>. For production in India, connect via TRAI-mandated DLT compliance:
+                    </p>
+                    <ul class="small text-muted ps-3 mb-3">
+                        <li><strong>TRAI / DLT Registration:</strong> Principal Entity registration on telecom portals (Jio, Airtel, Vodafone Idea, BSNL).</li>
+                        <li><strong>Registered Header:</strong> 6-character alpha Sender ID (e.g., <code>QSMRT</code> / <code>QSMART</code>).</li>
+                        <li><strong>Template Approval:</strong> Explicitly approved DLT transactional templates with variable tags (<code>{#var#}</code>).</li>
+                        <li><strong>2-Way Inbound:</strong> Dedicated Long Code (10-digit) or Short Code (5-digit) sending webhooks to <code>POST /api/sms/webhook</code>.</li>
+                        <li><strong>Aggregator APIs:</strong> Supported providers: Gupshup, Textlocal, Exotel, Kaleyra, Twilio.</li>
+                    </ul>
+
+                    <div class="alert alert-light border small text-muted py-2 mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Webhook Endpoint: <code>http://localhost:8080/api/sms/webhook</code>
+                    </div>
+                </div>
+
+                <!-- Live SMS Transaction Log -->
+                <div class="custom-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-database me-2"></i>Recent SMS Gateway Traffic</h6>
+                        <button class="btn btn-sm btn-outline-secondary py-0" onclick="loadSmsHistory()">Refresh</button>
+                    </div>
+                    <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
+                        <table class="table table-sm table-striped small">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Dir</th>
+                                    <th>Phone</th>
+                                    <th>Message / Reply</th>
+                                </tr>
+                            </thead>
+                            <tbody id="smsHistoryTableBody">
+                                <tr><td colspan="4" class="text-center py-3 text-muted">Loading SMS logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        function appendChatBubble(text, direction) {
+            const chatWindow = document.getElementById('smsChatWindow');
+            const bubble = document.createElement('div');
+            bubble.className = `sms-bubble ${direction === 'inbound' ? 'sms-inbound' : 'sms-outbound'}`;
+            bubble.innerHTML = text.replace(/\n/g, '<br>');
+            chatWindow.appendChild(bubble);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function sendSmsCommand(e) {
+            if (e) e.preventDefault();
+            const phone = document.getElementById('smsSenderPhone').value.trim();
+            const text = document.getElementById('smsInputText').value.trim();
+            if (!text) return;
+
+            appendChatBubble(text, 'inbound');
+            document.getElementById('smsInputText').value = '';
+
+            const btn = document.getElementById('sendSmsBtn');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/sms/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from: phone, text: text })
+                });
+                const json = await res.json();
+                if (json.success && json.data) {
+                    appendChatBubble(json.data.reply, 'outbound');
+                } else {
+                    appendChatBubble('Error: ' + (json.message || 'Gateway error'), 'outbound');
+                }
+                await loadSmsHistory();
+            } catch (err) {
+                appendChatBubble('Connection error: ' + err.message, 'outbound');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function fillAndSend(cmd) {
+            document.getElementById('smsInputText').value = cmd;
+            sendSmsCommand(null);
+        }
+
+        async function loadSmsHistory() {
+            try {
+                const res = await fetch('/api/sms/history');
+                const json = await res.json();
+                const tbody = document.getElementById('smsHistoryTableBody');
+                if (json.success && json.data) {
+                    if (json.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No SMS history recorded</td></tr>';
+                        return;
+                    }
+                    let html = '';
+                    json.data.forEach(m => {
+                        const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : '-';
+                        const badgeDir = m.direction === 'INBOUND' ? '<span class="badge bg-primary">IN</span>' : '<span class="badge bg-secondary">OUT</span>';
+                        const content = m.direction === 'INBOUND' ? m.rawMessage : m.replyMessage;
+                        html += `
+                            <tr>
+                                <td>${timeStr}</td>
+                                <td>${badgeDir}</td>
+                                <td>${m.phone}</td>
+                                <td><div class="text-truncate" style="max-width: 220px;" title="${content}">${content}</div></td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (e) {
+                console.debug(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuthAndSyncNavbar();
+            loadSmsHistory();
+        });
+    </script>
+</body>
+</html>

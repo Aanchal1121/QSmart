@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSmart — Inclusive & Intelligent Virtual Queue Management System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
+        <div class="container-fluid px-lg-5">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-intersect"></i>
+                <span data-i18n="app_title">QSmart</span>
+                <span class="badge bg-light text-dark ms-2 fs-6">v1.0</span>
+            </a>
+            <button class="navbar-toggler text-white" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
+                <i class="bi bi-list fs-2"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link active" href="index.html" data-i18n="nav_home">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="patient-dashboard.html" data-i18n="nav_patient">Patient Portal</a></li>
+                    <li class="nav-item"><a class="nav-link" href="staff-dashboard.html" data-i18n="nav_staff">Staff Desk</a></li>
+                    <li class="nav-item"><a class="nav-link" href="doctor-dashboard.html" data-i18n="nav_doctor">Doctor Clinic</a></li>
+                    <li class="nav-item"><a class="nav-link" href="admin-dashboard.html" data-i18n="nav_admin">Admin Console</a></li>
+                    <li class="nav-item"><a class="nav-link" href="public-display.html" target="_blank" data-i18n="nav_public"><i class="bi bi-tv me-1"></i>Waiting Room TV</a></li>
+                    <li class="nav-item"><a class="nav-link text-warning fw-semibold" href="sms-simulator.html" data-i18n="nav_sms"><i class="bi bi-chat-square-dots-fill me-1"></i>SMS Simulator</a></li>
+                </ul>
+                
+                <!-- Language Switcher & User Profile -->
+                <div class="d-flex align-items-center gap-3">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-light lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                        <button type="button" class="btn btn-outline-light lang-btn" data-lang="hi" onclick="setLanguage('hi')">हिंदी</button>
+                    </div>
+                    <div id="userNavSection" class="d-flex"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="py-5 bg-white border-bottom">
+        <div class="container px-lg-5">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-semibold mb-3">
+                        <i class="bi bi-hospital me-1"></i> Healthcare Virtual Queue System
+                    </span>
+                    <h1 class="display-5 fw-bold text-dark lh-sm mb-3" data-i18n="hero_tagline">
+                        Inclusive &amp; Intelligent Virtual Queue Management
+                    </h1>
+                    <p class="lead text-secondary mb-4" data-i18n="hero_desc">
+                        Join queues virtually from anywhere, receive digital token passes, track real-time waiting times, and experience zero physical waiting in hospital waiting rooms.
+                    </p>
+                    
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="patient-dashboard.html" class="btn btn-primary-teal btn-lg px-4 shadow">
+                            <i class="bi bi-ticket-perforated-fill me-2"></i><span data-i18n="btn_book_token">Book Token Now</span>
+                        </a>
+                        <a href="public-display.html" target="_blank" class="btn btn-outline-dark btn-lg px-4">
+                            <i class="bi bi-tv me-2"></i><span data-i18n="btn_track_queue">Waiting Room TV</span>
+                        </a>
+                        <a href="sms-simulator.html" class="btn btn-warning btn-lg px-4 text-dark fw-semibold">
+                            <i class="bi bi-phone me-2"></i>Keypad Phone SMS
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-5">
+                    <!-- Live Hospital OPD Queue Preview Card -->
+                    <div class="custom-card border-2 shadow-lg p-4">
+                        <div class="d-flex justify-content-between align-items-center pb-3 border-bottom">
+                            <div>
+                                <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-hospital me-2"></i>Apex City Hospital</h6>
+                                <small class="text-muted">General Medicine (OPD)</small>
+                            </div>
+                            <span class="badge bg-success px-3 py-2"><i class="bi bi-broadcast me-1"></i> Live</span>
+                        </div>
+                        
+                        <div class="text-center py-4 my-2 bg-light rounded-3">
+                            <small class="text-muted text-uppercase fw-semibold" data-i18n="stat_current_serving">Now Serving</small>
+                            <div class="display-4 fw-bold text-primary my-1" id="previewServingToken">OPD-002</div>
+                            <div class="badge bg-primary text-white" id="previewServingCounter">Counter 2 (Room 102)</div>
+                        </div>
+
+                        <div class="row g-2 text-center">
+                            <div class="col-6">
+                                <div class="p-2 border rounded">
+                                    <small class="text-muted d-block" data-i18n="stat_waiting">Waiting Ahead</small>
+                                    <span class="fs-4 fw-bold text-dark" id="previewWaitingCount">3</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 border rounded">
+                                    <small class="text-muted d-block" data-i18n="stat_eta">Estimated Wait</small>
+                                    <span class="fs-4 fw-bold text-primary" id="previewEstWait">~15 mins</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3 mb-0 py-2 small d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                            <div>Live updates powered by Spring WebSocket. Zero manual refresh required.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Innovation Section: 3 Channels, ONE Centralized Engine -->
+    <section class="py-5">
+        <div class="container px-lg-5">
+            <div class="text-center max-w-700 mx-auto mb-5">
+                <span class="text-primary fw-bold text-uppercase small">Our Key Innovation</span>
+                <h2 class="fw-bold text-dark mt-1" data-i18n="channel_title">
+                    One Centralized Queue • 3 Inclusive Channels
+                </h2>
+                <p class="text-muted">
+                    Digital users never unfairly jump ahead of walk-ins. All three access channels feed into ONE single centralized FIFO queue engine.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Channel 1: Smartphone -->
+                <div class="col-md-4">
+                    <div class="custom-card h-100 p-4 border-top border-4 border-primary">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="p-3 bg-primary-subtle text-primary rounded-circle me-3">
+                                <i class="bi bi-phone-fill fs-3"></i>
+                            </div>
+                            <div>
+                                <span class="badge channel-pill channel-smartphone mb-1">Channel A</span>
+                                <h5 class="fw-bold mb-0" data-i18n="ch_smart_title">1. Smartphone Users</h5>
+                            </div>
+                        </div>
+                        <p class="text-secondary small" data-i18n="ch_smart_desc">
+                            Book from any browser, monitor live queue position, estimated wait times, and QR digital slip.
+                        </p>
+                        <ul class="list-unstyled small text-muted mb-4">
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Real-time position &amp; ETA</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Turn approach notifications</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>One-click cancelation</li>
+                        </ul>
+                        <a href="patient-dashboard.html" class="btn btn-outline-primary btn-sm w-100 fw-semibold">Open Patient Dashboard</a>
+                    </div>
+                </div>
+
+                <!-- Channel 2: Keypad SMS -->
+                <div class="col-md-4">
+                    <div class="custom-card h-100 p-4 border-top border-4 border-warning">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="p-3 bg-warning-subtle text-warning-emphasis rounded-circle me-3">
+                                <i class="bi bi-chat-square-text-fill fs-3 text-warning"></i>
+                            </div>
+                            <div>
+                                <span class="badge channel-pill channel-sms mb-1">Channel B</span>
+                                <h5 class="fw-bold mb-0" data-i18n="ch_sms_title">2. Keypad SMS Users</h5>
+                            </div>
+                        </div>
+                        <p class="text-secondary small" data-i18n="ch_sms_desc">
+                            No smartphone or internet required. Text simple commands like BOOK, STATUS, CANCEL via SMS.
+                        </p>
+                        <ul class="list-unstyled small text-muted mb-4">
+                            <li><code>BOOK HOSPITAL01 OPD</code></li>
+                            <li><code>STATUS OPD-001</code></li>
+                            <li><code>CANCEL OPD-001</code></li>
+                        </ul>
+                        <a href="sms-simulator.html" class="btn btn-outline-warning text-dark btn-sm w-100 fw-semibold">Try SMS Simulator</a>
+                    </div>
+                </div>
+
+                <!-- Channel 3: Walk-in / Assisted -->
+                <div class="col-md-4">
+                    <div class="custom-card h-100 p-4 border-top border-4 border-success">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="p-3 bg-success-subtle text-success rounded-circle me-3">
+                                <i class="bi bi-person-walking fs-3"></i>
+                            </div>
+                            <div>
+                                <span class="badge channel-pill channel-walkin mb-1">Channel C</span>
+                                <h5 class="fw-bold mb-0" data-i18n="ch_walkin_title">3. Walk-in Users</h5>
+                            </div>
+                        </div>
+                        <p class="text-secondary small" data-i18n="ch_walkin_desc">
+                            Registered at reception counters. Enters the exact same centralized FIFO sequence for 100% fairness.
+                        </p>
+                        <ul class="list-unstyled small text-muted mb-4">
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Printed token slips with QR</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Priority rules for Seniors &amp; PwD</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Full audit trail &amp; skip reasons</li>
+                        </ul>
+                        <a href="staff-dashboard.html" class="btn btn-outline-success btn-sm w-100 fw-semibold">Open Staff Desk</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fairness Policy Banner -->
+            <div class="alert alert-light border shadow-sm p-4 mt-5 rounded-4 d-flex align-items-center">
+                <i class="bi bi-shield-check text-primary fs-1 me-3"></i>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">Strict Centralized Queue Fairness Policy</h6>
+                    <p class="text-muted small mb-0" data-i18n="fairness_notice">
+                        Fairness Policy: Smartphone, SMS, and Walk-in patients enter the exact same queue sequence. Digital users do not unfairly jump ahead of walk-in patients.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Role Switcher / Direct Access for Evaluators -->
+    <section class="py-5 bg-white border-top">
+        <div class="container px-lg-5">
+            <div class="text-center mb-4">
+                <span class="badge bg-secondary-subtle text-secondary px-3 py-1 fw-bold">EVALUATION &amp; DEMO SHORTCUTS</span>
+                <h3 class="fw-bold text-dark mt-2">Explore Any Dashboard in 1-Click</h3>
+                <p class="text-muted small">Pre-configured role credentials for instant testing:</p>
+            </div>
+
+            <div class="row g-3 text-center">
+                <div class="col-6 col-md-3">
+                    <a href="patient-dashboard.html" class="custom-card p-3 d-block text-decoration-none text-dark hover-shadow">
+                        <i class="bi bi-person-fill fs-2 text-primary"></i>
+                        <h6 class="fw-bold mt-2 mb-1">Patient Portal</h6>
+                        <small class="text-muted d-block">Book, track live queue, QR slip</small>
+                    </a>
+                </div>
+                <div class="col-6 col-md-3">
+                    <a href="staff-dashboard.html" class="custom-card p-3 d-block text-decoration-none text-dark hover-shadow">
+                        <i class="bi bi-person-badge-fill fs-2 text-success"></i>
+                        <h6 class="fw-bold mt-2 mb-1">Staff Desk</h6>
+                        <small class="text-muted d-block">Call next, walk-ins, skip reason</small>
+                    </a>
+                </div>
+                <div class="col-6 col-md-3">
+                    <a href="doctor-dashboard.html" class="custom-card p-3 d-block text-decoration-none text-dark hover-shadow">
+                        <i class="bi bi-heart-pulse-fill fs-2 text-danger"></i>
+                        <h6 class="fw-bold mt-2 mb-1">Doctor Clinic</h6>
+                        <small class="text-muted d-block">Consultation, delays, availability</small>
+                    </a>
+                </div>
+                <div class="col-6 col-md-3">
+                    <a href="admin-dashboard.html" class="custom-card p-3 d-block text-decoration-none text-dark hover-shadow">
+                        <i class="bi bi-shield-lock-fill fs-2 text-warning"></i>
+                        <h6 class="fw-bold mt-2 mb-1">Admin Console</h6>
+                        <small class="text-muted d-block">Analytics, counters, audit logs</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container px-lg-5 text-center">
+            <p class="mb-1 fw-semibold text-dark">QSmart — Inclusive &amp; Intelligent Virtual Queue Management System</p>
+            <p class="mb-0 text-muted small">Built with Spring Boot 3, MySQL 8, WebSockets, Bootstrap 5. Designed for public healthcare accessibility.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS, SockJS, STOMP -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Fetch live preview of OPD queue for Apex City Hospital (Department 1)
+        async function fetchQueuePreview() {
+            try {
+                const res = await fetch('/api/public/queue/1');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const data = json.data;
+                    document.getElementById('previewServingToken').textContent = data.currentServingToken || 'None';
+                    document.getElementById('previewServingCounter').textContent = data.currentCounterNumber || 'Waiting Room';
+                    document.getElementById('previewWaitingCount').textContent = data.totalWaiting || 0;
+                    document.getElementById('previewEstWait').textContent = `~${data.avgWaitMinutes || 10} mins`;
+                }
+            } catch (e) {
+                console.debug('Preview poll', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchQueuePreview();
+            // Connect to WebSocket for live updates
+            window.qsmartWs.connect((connected) => {
+                if (connected) {
+                    window.qsmartWs.subscribeDepartment(1, (data) => {
+                        document.getElementById('previewServingToken').textContent = data.currentServingToken || 'None';
+                        document.getElementById('previewServingCounter').textContent = data.currentCounterNumber || 'Waiting Room';
+                        document.getElementById('previewWaitingCount').textContent = data.totalWaiting || 0;
+                        document.getElementById('previewEstWait').textContent = `~${data.avgWaitMinutes || 10} mins`;
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
